@@ -2,7 +2,6 @@ package webrtc
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"time"
 
@@ -10,12 +9,6 @@ import (
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
 )
-
-type udpConn struct {
-	conn        *net.UDPConn
-	port        int
-	payloadType uint8
-}
 
 func createMediaEngine() *webrtc.MediaEngine {
 	// Everything below is the Pion WebRTC API! Thanks for using it ❤️.
@@ -92,6 +85,7 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 		panic(err)
 	}
 
+	// TODO: move this code to PeerManager
 	// defer func() {
 	// 	if cErr := peerConnection.Close(); cErr != nil {
 	// 		fmt.Printf("cannot close peerConnection: %v\n", cErr)
@@ -104,39 +98,6 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 	} else if _, err = peerConnection.AddTransceiverFromKind(webrtc.RTPCodecTypeVideo); err != nil {
 		panic(err)
 	}
-
-	// // Create a local addr
-	// var laddr *net.UDPAddr
-	// if laddr, err = net.ResolveUDPAddr("udp", "127.0.0.1:"); err != nil {
-	// 	panic(err)
-	// }
-
-	// // Prepare udp conns
-	// // Also update incoming packets with expected PayloadType, the browser may use
-	// // a different value. We have to modify so our stream matches what rtp-forwarder.sdp expects
-	// udpConns := map[string]*udpConn{
-	// 	"audio": {port: 4000, payloadType: 111},
-	// 	"video": {port: 4002, payloadType: 96},
-	// }
-
-	// for _, c := range udpConns {
-	// 	// Create remote addr
-	// 	var raddr *net.UDPAddr
-	// 	if raddr, err = net.ResolveUDPAddr("udp", fmt.Sprintf("127.0.0.1:%d", c.port)); err != nil {
-	// 		panic(err)
-	// 	}
-
-	// 	// Dial udp
-	// 	if c.conn, err = net.DialUDP("udp", laddr, raddr); err != nil {
-	// 		panic(err)
-	// 	}
-
-	// 	defer func(conn net.PacketConn) {
-	// 		if closeErr := conn.Close(); closeErr != nil {
-	// 			panic(closeErr)
-	// 		}
-	// 	}(c.conn)
-	// }
 
 	// Set a handler for when a new remote track starts, this handler will forward data to
 	// our UDP listeners.
