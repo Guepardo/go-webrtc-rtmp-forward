@@ -1,6 +1,8 @@
 package webrtc
 
 import (
+	"log"
+
 	"github.com/pion/webrtc/v3"
 )
 
@@ -33,9 +35,15 @@ func (manager *PeerManager) Start() {
 }
 
 func (manager *PeerManager) HandleSessionDescriptionOffer(id string, sessionDescriptionOffer string) string {
+	connection := CreatePeerConnection(
+		sessionDescriptionOffer,
+		id,
+		manager.PeerEventChan,
+	)
+
 	manager.Peers[id] = &Peer{
 		Id:         id,
-		Connection: CreatePeerConnection(sessionDescriptionOffer),
+		Connection: connection,
 	}
 
 	// Output the answer in base64 so we can paste it in browser
@@ -52,5 +60,5 @@ func (manager *PeerManager) listenPeerEvents() {
 }
 
 func (manager *PeerManager) handlePeerEvent(peerEvent PeerEvent) {
-
+	log.Println("Received a peer event lol")
 }

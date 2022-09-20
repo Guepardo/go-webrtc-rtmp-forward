@@ -1,12 +1,7 @@
 package webrtc
 
 import (
-	"fmt"
-	"os"
-	"time"
-
 	"github.com/pion/interceptor"
-	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
 )
 
@@ -63,7 +58,7 @@ func createNewApiWithMediaEngine(mediaEngine *webrtc.MediaEngine) *webrtc.API {
 	return webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine), webrtc.WithInterceptorRegistry(interceptorRegistry))
 }
 
-func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection {
+func CreatePeerConnection(sessionDescriptionOffer string, peerId string, peerEventChan chan PeerEvent) *webrtc.PeerConnection {
 	mediaEngine := createMediaEngine()
 
 	// Create the API object with the MediaEngine
@@ -99,65 +94,28 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 		panic(err)
 	}
 
+	peerLifeCycleManager := PeerLifeCycleManager{
+		PeerId:         peerId,
+		PeerEventChan:  peerEventChan,
+		PeerConnection: peerConnection,
+	}
+
 	// Set a handler for when a new remote track starts, this handler will forward data to
 	// our UDP listeners.
 	// In your application this is where you would handle/process audio/video
-	peerConnection.OnTrack(func(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
-		// Retrieve udp connection
-		// c, ok := udpConns[track.Kind().String()]
-		// if !ok {
-		// 	return
-		// }
-
-		// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
-		go func() {
-			ticker := time.NewTicker(time.Second * 2)
-			for range ticker.C {
-				if rtcpErr := peerConnection.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
-					fmt.Println(rtcpErr)
-				}
-			}
-		}()
-
-		b := make([]byte, 1500)
-
-		for {
-			// Read
-			n, _, readErr := track.Read(b)
-			if readErr != nil {
-				panic(readErr)
-			}
-
-			fmt.Printf("bytes from webrtc %b \n", n)
-		}
-	})
+	peerConnection.OnTrack(peerLifeCycleManager.OnTrack)
 
 	// Set the handler for ICE connection state
 	// This will notify you when the peer has connected/disconnected
-	peerConnection.OnICEConnectionStateChange(func(connectionState webrtc.ICEConnectionState) {
-		fmt.Printf("Connection State has changed %s \n", connectionState.String())
-
-		if connectionState == webrtc.ICEConnectionStateConnected {
-			fmt.Println("Ctrl+C the remote client to stop the demo")
-		}
-	})
+	peerConnection.OnICEConnectionStateChange(peerLifeCycleManager.OnICEConnectionStateChange)
 
 	// Set the handler for Peer connection state
 	// This will notify you when the peer has connected/disconnected
-	peerConnection.OnConnectionStateChange(func(s webrtc.PeerConnectionState) {
-		fmt.Printf("Peer Connection State has changed: %s\n", s.String())
-
-		if s == webrtc.PeerConnectionStateFailed {
-			// Wait until PeerConnection has had no network activity for 30 seconds or another failure. It may be reconnected using an ICE Restart.
-			// Use webrtc.PeerConnectionStateDisconnected if you are interested in detecting faster timeout.
-			// Note that the PeerConnection may come back from PeerConnectionStateDisconnected.
-			fmt.Println("Done forwarding")
-			os.Exit(0)
-		}
-	})
+	peerConnection.OnConnectionStateChange(peerLifeCycleManager.OnConnectionStateChange)
 
 	// Wait for the offer to be pasted
 	offer := webrtc.SessionDescription{}
+
 	Decode(sessionDescriptionOffer, &offer)
 
 	// Set the remote SessionDescription
