@@ -1,4 +1,4 @@
-module github.com/webrtc-go
+module github.com/go-webrtc-rtmp-forward
 
 go 1.17
 

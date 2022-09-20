@@ -6,11 +6,11 @@ package main
 import (
 	"fmt"
 
-	"github.com/webrtc-go/peer"
+	"github.com/go-webrtc-rtmp-forward/webrtc"
 )
 
 func main() {
-	peerManager := peer.NewPeerManager()
+	peerManager := webrtc.NewPeerManager()
 	peerManager.Start()
 
 	sdp := ""

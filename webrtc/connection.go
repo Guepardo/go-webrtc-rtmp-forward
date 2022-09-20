@@ -1,4 +1,4 @@
-package peer
+package webrtc
 
 import (
 	"fmt"
@@ -9,7 +9,6 @@ import (
 	"github.com/pion/interceptor"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
-	"github.com/webrtc-go/signal"
 )
 
 type udpConn struct {
@@ -198,7 +197,7 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 
 	// Wait for the offer to be pasted
 	offer := webrtc.SessionDescription{}
-	signal.Decode(sessionDescriptionOffer, &offer)
+	Decode(sessionDescriptionOffer, &offer)
 
 	// Set the remote SessionDescription
 	if err = peerConnection.SetRemoteDescription(offer); err != nil {
@@ -225,7 +224,7 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 	<-gatherComplete
 
 	// Output the answer in base64 so we can paste it in browser
-	fmt.Println(signal.Encode(*peerConnection.LocalDescription()))
+	fmt.Println(Encode(*peerConnection.LocalDescription()))
 
 	return peerConnection
 }
