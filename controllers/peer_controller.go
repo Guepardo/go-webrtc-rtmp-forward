@@ -1,21 +1,44 @@
 package controllers
 
 import (
-	"log"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 
 	"github.com/go-webrtc-rtmp-forward/webrtc"
-	"github.com/gorilla/mux"
 )
 
-type Server struct {
-	Router *mux.Router
-}
-
 type PeerController struct {
+	BaseController
 	PeerManager *webrtc.PeerManager
 }
 
+type CreatePayload struct {
+	Id                      string `json:"id"`
+	SessionDescriptionOffer string `json:"session_description_offer"`
+}
+
+type ResponsePayload struct {
+	SessionDescriptionOffer string `json:"session_description_offer"`
+}
+
 func (peerController *PeerController) Create(w http.ResponseWriter, r *http.Request) {
-	log.Println("lol")
+	defer r.Body.Close()
+
+	createPayload := CreatePayload{}
+
+	body, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		panic(err.Error())
+	}
+
+	json.Unmarshal(body, &createPayload)
+
+	serverSessionDescriptionOffer := peerController.PeerManager.HandleSessionDescriptionOffer(
+		createPayload.Id,
+		createPayload.SessionDescriptionOffer,
+	)
+
+	peerController.renderJson(w, http.StatusOK, ResponsePayload{SessionDescriptionOffer: serverSessionDescriptionOffer})
 }

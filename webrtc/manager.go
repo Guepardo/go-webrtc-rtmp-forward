@@ -38,9 +38,8 @@ func (manager *PeerManager) HandleSessionDescriptionOffer(id string, sessionDesc
 		Connection: CreatePeerConnection(sessionDescriptionOffer),
 	}
 
-	// fmt.Println(signal.Encode(manager.Peers[id].Connection.LocalDescription()))
-
-	return ""
+	// Output the answer in base64 so we can paste it in browser
+	return Encode(manager.Peers[id].Connection.LocalDescription())
 }
 
 // Private

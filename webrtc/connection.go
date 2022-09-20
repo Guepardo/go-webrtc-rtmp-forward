@@ -184,8 +184,5 @@ func CreatePeerConnection(sessionDescriptionOffer string) *webrtc.PeerConnection
 	// in a production application you should exchange ICE Candidates via OnICECandidate
 	<-gatherComplete
 
-	// Output the answer in base64 so we can paste it in browser
-	fmt.Println(Encode(*peerConnection.LocalDescription()))
-
 	return peerConnection
 }
