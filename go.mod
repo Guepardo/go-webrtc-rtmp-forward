@@ -5,6 +5,7 @@ go 1.17
 require github.com/pion/webrtc/v3 v3.1.43
 
 require (
+	github.com/at-wat/ebml-go v0.16.0 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/pion/datachannel v1.5.2 // indirect

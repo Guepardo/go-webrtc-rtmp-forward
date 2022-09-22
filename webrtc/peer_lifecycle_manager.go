@@ -2,8 +2,10 @@ package webrtc
 
 import (
 	"fmt"
+	"io"
 	"time"
 
+	"github.com/go-webrtc-rtmp-forward/transcode"
 	"github.com/pion/rtcp"
 	"github.com/pion/webrtc/v3"
 )
@@ -12,12 +14,13 @@ type PeerLifeCycleManager struct {
 	PeerId         string
 	PeerEventChan  chan PeerEvent
 	PeerConnection *webrtc.PeerConnection
+	Transcode      *transcode.Transcode
 }
 
 func (manager *PeerLifeCycleManager) OnTrack(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
 	// Send a PLI on an interval so that the publisher is pushing a keyframe every rtcpPLIInterval
 	go func() {
-		ticker := time.NewTicker(time.Second * 2)
+		ticker := time.NewTicker(time.Second * 3)
 		for range ticker.C {
 			if rtcpErr := manager.PeerConnection.WriteRTCP([]rtcp.Packet{&rtcp.PictureLossIndication{MediaSSRC: uint32(track.SSRC())}}); rtcpErr != nil {
 				fmt.Println(rtcpErr)
@@ -25,16 +28,19 @@ func (manager *PeerLifeCycleManager) OnTrack(track *webrtc.TrackRemote, receiver
 		}
 	}()
 
-	b := make([]byte, 1500)
-
 	for {
-		// Read
-		n, _, readErr := track.Read(b)
+		rtpPacket, _, readErr := track.ReadRTP()
+
 		if readErr != nil {
+			if readErr == io.EOF {
+				return
+			}
 			panic(readErr)
 		}
 
-		fmt.Printf("bytes from webrtc %b \n", n)
+		codecType := track.Kind()
+
+		manager.Transcode.HandleRTPPacket(rtpPacket, codecType)
 	}
 }
 

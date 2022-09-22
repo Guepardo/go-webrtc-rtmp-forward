@@ -16,6 +16,7 @@ type PeerController struct {
 type CreatePayload struct {
 	Id                      string `json:"id"`
 	SessionDescriptionOffer string `json:"session_description_offer"`
+	RtmpUrlWithStreamKey    string `json:"rtmp_url_with_stream_key"`
 }
 
 type ResponsePayload struct {
@@ -38,6 +39,7 @@ func (peerController *PeerController) Create(w http.ResponseWriter, r *http.Requ
 	serverSessionDescriptionOffer := peerController.PeerManager.HandleSessionDescriptionOffer(
 		createPayload.Id,
 		createPayload.SessionDescriptionOffer,
+		createPayload.RtmpUrlWithStreamKey,
 	)
 
 	peerController.renderJson(w, http.StatusOK, ResponsePayload{SessionDescriptionOffer: serverSessionDescriptionOffer})

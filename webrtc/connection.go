@@ -1,8 +1,14 @@
 package webrtc
 
 import (
+	"github.com/go-webrtc-rtmp-forward/transcode"
 	"github.com/pion/interceptor"
 	"github.com/pion/webrtc/v3"
+)
+
+const (
+	VIDEO_CLOCK_RATE = 90000
+	AUDIO_CLOCK_RATE = 48000
 )
 
 func createMediaEngine() *webrtc.MediaEngine {
@@ -13,7 +19,7 @@ func createMediaEngine() *webrtc.MediaEngine {
 	videoCodecParameters := webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
 			MimeType:     webrtc.MimeTypeVP8,
-			ClockRate:    90000,
+			ClockRate:    VIDEO_CLOCK_RATE,
 			Channels:     0,
 			SDPFmtpLine:  "",
 			RTCPFeedback: nil,
@@ -28,7 +34,7 @@ func createMediaEngine() *webrtc.MediaEngine {
 	audioCodecCodecParameters := webrtc.RTPCodecParameters{
 		RTPCodecCapability: webrtc.RTPCodecCapability{
 			MimeType:     webrtc.MimeTypeOpus,
-			ClockRate:    48000,
+			ClockRate:    AUDIO_CLOCK_RATE,
 			Channels:     0,
 			SDPFmtpLine:  "",
 			RTCPFeedback: nil,
@@ -58,7 +64,7 @@ func createNewApiWithMediaEngine(mediaEngine *webrtc.MediaEngine) *webrtc.API {
 	return webrtc.NewAPI(webrtc.WithMediaEngine(mediaEngine), webrtc.WithInterceptorRegistry(interceptorRegistry))
 }
 
-func CreatePeerConnection(sessionDescriptionOffer string, peerId string, peerEventChan chan PeerEvent) *webrtc.PeerConnection {
+func CreatePeerConnection(sessionDescriptionOffer, peerId, rtmpUrlWithStreamKey string, peerEventChan chan PeerEvent) *webrtc.PeerConnection {
 	mediaEngine := createMediaEngine()
 
 	// Create the API object with the MediaEngine
@@ -94,10 +100,19 @@ func CreatePeerConnection(sessionDescriptionOffer string, peerId string, peerEve
 		panic(err)
 	}
 
+	transcode := &transcode.Transcode{}
+
+	transcode.Initialize(
+		VIDEO_CLOCK_RATE,
+		AUDIO_CLOCK_RATE,
+		rtmpUrlWithStreamKey,
+	)
+
 	peerLifeCycleManager := PeerLifeCycleManager{
 		PeerId:         peerId,
 		PeerEventChan:  peerEventChan,
 		PeerConnection: peerConnection,
+		Transcode:      transcode,
 	}
 
 	// Set a handler for when a new remote track starts, this handler will forward data to
@@ -125,6 +140,7 @@ func CreatePeerConnection(sessionDescriptionOffer string, peerId string, peerEve
 
 	// Create answer
 	answer, err := peerConnection.CreateAnswer(nil)
+
 	if err != nil {
 		panic(err)
 	}

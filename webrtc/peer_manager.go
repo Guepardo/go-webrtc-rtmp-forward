@@ -34,10 +34,11 @@ func (manager *PeerManager) Start() {
 	go manager.listenPeerEvents()
 }
 
-func (manager *PeerManager) HandleSessionDescriptionOffer(id string, sessionDescriptionOffer string) string {
+func (manager *PeerManager) HandleSessionDescriptionOffer(id string, sessionDescriptionOffer string, rtmpUrlWithStreamKey string) string {
 	connection := CreatePeerConnection(
 		sessionDescriptionOffer,
 		id,
+		rtmpUrlWithStreamKey,
 		manager.PeerEventChan,
 	)
 
