@@ -2,7 +2,6 @@ package webrtc
 
 import (
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/go-webrtc-rtmp-forward/transcode"
@@ -14,7 +13,7 @@ type PeerLifeCycleManager struct {
 	PeerId         string
 	PeerEventChan  chan PeerEvent
 	PeerConnection *webrtc.PeerConnection
-	Transcode      *transcode.Transcode
+	UdpForwarder   *transcode.UdpForwarder
 }
 
 func (manager *PeerLifeCycleManager) OnTrack(track *webrtc.TrackRemote, receiver *webrtc.RTPReceiver) {
@@ -29,18 +28,7 @@ func (manager *PeerLifeCycleManager) OnTrack(track *webrtc.TrackRemote, receiver
 	}()
 
 	for {
-		rtpPacket, _, readErr := track.ReadRTP()
-
-		if readErr != nil {
-			if readErr == io.EOF {
-				return
-			}
-			panic(readErr)
-		}
-
-		codecType := track.Kind()
-
-		manager.Transcode.HandleRTPPacket(rtpPacket, codecType)
+		manager.UdpForwarder.HandleTrack(track)
 	}
 }
 

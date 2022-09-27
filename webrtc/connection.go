@@ -100,19 +100,15 @@ func CreatePeerConnection(sessionDescriptionOffer, peerId, rtmpUrlWithStreamKey 
 		panic(err)
 	}
 
-	transcode := &transcode.Transcode{}
+	udpForwarder := &transcode.UdpForwarder{}
 
-	transcode.Initialize(
-		VIDEO_CLOCK_RATE,
-		AUDIO_CLOCK_RATE,
-		rtmpUrlWithStreamKey,
-	)
+	udpForwarder.Initialize(4000, 4002)
 
 	peerLifeCycleManager := PeerLifeCycleManager{
 		PeerId:         peerId,
 		PeerEventChan:  peerEventChan,
 		PeerConnection: peerConnection,
-		Transcode:      transcode,
+		UdpForwarder:   udpForwarder,
 	}
 
 	// Set a handler for when a new remote track starts, this handler will forward data to

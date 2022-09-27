@@ -57,6 +57,7 @@ func (transcode *Transcode) HandleRTPPacket(packet *rtp.Packet, codecType webrtc
 	case webrtc.RTPCodecTypeVideo:
 		transcode.handleVideoPacket(packet)
 	}
+
 }
 
 // Private
@@ -85,6 +86,7 @@ func (transcode *Transcode) handleVideoPacket(packet *rtp.Packet) {
 
 	for {
 		sample := transcode.VideoBuilder.Pop()
+
 		if sample == nil {
 			return
 		}
@@ -99,6 +101,7 @@ func (transcode *Transcode) handleVideoPacket(packet *rtp.Packet) {
 				transcode.startFFmpeg(width, height)
 			}
 		}
+
 		if transcode.VideoWriter != nil {
 			transcode.VideoTimestamp += sample.Duration
 			timestamp := int64(transcode.AudioTimestamp / time.Millisecond)
@@ -147,11 +150,14 @@ func (transcode *Transcode) setUpCodecsAndOpenWriters(width, height int, ffmpegI
 
 	transcode.AudioWriter = blockWriteCloserArray[0]
 	transcode.VideoWriter = blockWriteCloserArray[1]
+
+	log.Println("Writers Set up")
 }
 
 func (transcode *Transcode) startFFmpeg(width, height int) {
 	// Create a ffmpeg process that consumes MKV via stdin, and broadcasts out to rtmp url provided
-	ffmpeg := exec.Command("ffmpeg", "-re", "-i", "pipe:0", "-c:v", "libx264", "-preset", "veryfast", "-maxrate", "3000k", "-bufsize", "6000k", "-pix_fmt", "yuv420p", "-g", "50", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "44100", "-f", "flv", transcode.RtmpUrlWithStreamKey) //nolint
+	// https://stackoverflow.com/questions/16658873/how-to-minimize-the-delay-in-a-live-streaming-with-ffmpeg/49273163#49273163
+	ffmpeg := exec.Command("ffmpeg", "-re", "-i", "pipe:0", "-c:v", "libx264", "-preset", "veryfast", "-b:v", "3000k", "-maxrate", "3000k", "-bufsize", "6000k", "-pix_fmt", "yuv420p", "-g", "50", "-c:a", "aac", "-b:a", "160k", "-ac", "2", "-ar", "44100", "-f", "flv", transcode.RtmpUrlWithStreamKey, "-loglevel", "debug") //nolint
 	ffmpegIn, _ := ffmpeg.StdinPipe()
 	ffmpegOut, _ := ffmpeg.StderrPipe()
 
